@@ -1,44 +1,65 @@
-// Jenkins Scripted Pipeline
-// This pipeline builds, tests, and deploys a Node.js project with Docker integration.
+// Jenkins Scripted Pipeline - Node.js Project Build and Deployment with Email Notifications
 
-node('node') { // Run the pipeline on a Jenkins agent named 'node'
+// Define the Jenkins pipeline to run on a node named 'node'
+node('node') {
 
     try {
         // Set the overall build result to "SUCCESS" initially
         currentBuild.result = "SUCCESS"
 
-        // Stage: Checkout - Check out the project's source code
+        // Stage 1: Checkout - Check out the Node.js project's source code from the version control system (e.g., Git)
         stage('Checkout') {
             checkout scm
         }
 
-        // Stage: Test - Run tests for the Node.js project
+        // Stage 2: Test - Run tests for the Node.js project
         stage('Test') {
-            env.NODE_ENV = "test" // Set the NODE_ENV environment variable to "test"
+            // Set the environment variable NODE_ENV to "test" for testing environment
+            env.NODE_ENV = "test"
             echo "Environment will be: ${env.NODE_ENV}"
-            sh 'node -v' // Print the current version of Node.js
-            sh 'npm prune' // Remove unused npm packages
-            sh 'npm install' // Install project dependencies
-            sh 'npm test' // Run tests using npm
+
+            // Print the current version of Node.js for debugging purposes
+            sh 'node -v'
+
+            // Prune unused npm packages to clean up the node_modules directory and optimize testing
+            sh 'npm prune'
+
+            // Install project dependencies (npm packages) to ensure test dependencies are available
+            sh 'npm install'
+
+            // Run tests for the Node.js project using npm
+            sh 'npm test'
         }
 
-        // Stage: Build Docker - Build a Docker image for the Node.js project
+        // Stage 3: Build Docker - Build a Docker image for the Node.js project
         stage('Build Docker') {
-            sh './dockerBuild.sh' // Execute a shell script to build the Docker image
+            // Execute a shell script (dockerBuild.sh) to build the Docker image
+            sh './dockerBuild.sh'
         }
 
-        // Stage: Deploy - Deploy the Docker container
+        // Stage 4: Deploy - Deploy the Docker container to a server
         stage('Deploy') {
-            echo 'Push to Repository'
-            sh './dockerPushToRepo.sh' // Execute a shell script to push the Docker image to a repository
-            echo 'ssh deploy@xxxxx.xxxxx.com running/xxxxx/dockerRun.sh' // Run the deployed container on a remote server (example command)
+            // Print a message indicating that the project will be pushed to a repository
+            echo 'Pushing Docker image to the repository'
+
+            // Execute a shell script (dockerPushToRepo.sh) to push the Docker image to a repository
+            sh './dockerPushToRepo.sh'
+
+            // Print a message indicating that the deployed container will be started on a remote server
+            echo 'Starting the deployed container on a remote server (example command)'
+            sh 'ssh deploy@xxxxx.xxxxx.com running/xxxxx/dockerRun.sh'
         }
 
-        // Stage: Cleanup - Perform cleanup actions
+        // Stage 5: Cleanup - Perform cleanup actions after the build and deployment
         stage('Cleanup') {
-            echo 'Prune and cleanup'
-            sh 'npm prune' // Prune unused npm packages again (optional)
-            sh 'rm node_modules -rf' // Delete the node_modules directory
+            // Print a message indicating that pruning and cleanup are happening
+            echo 'Pruning and cleaning up'
+
+            // Prune unused npm packages again to optimize the final artifact
+            sh 'npm prune'
+
+            // Delete the node_modules directory to clean up the workspace and reduce artifacts size
+            sh 'rm node_modules -rf'
         }
         
     } catch (err) {
@@ -47,14 +68,19 @@ node('node') { // Run the pipeline on a Jenkins agent named 'node'
         // Set the overall build result to "FAILURE"
         currentBuild.result = "FAILURE"
 
-        // Send an email notification about the build failure
-        mail body: "Project build error is here: ${env.BUILD_URL}",
-            from: 'xxxx@yyyy.com',
-            replyTo: 'yyyy@yyyy.com',
-            subject: 'project build failed',
+        // Send an email notification about the build failure using the emailext plugin
+        emailext body: "Project build error is here: ${env.BUILD_URL}",
+            mimeType: 'text/html',
+            subject: 'Project build failed',
             to: 'zzzzz@zzzz.com'
 
         // Propagate the error to the Jenkins pipeline system
         throw err
+    } finally {
+        // Send an email notification about the build result (success or failure) using the emailext plugin
+        emailext body: "Project build status: ${currentBuild.result}",
+            mimeType: 'text/html',
+            subject: 'Project build result',
+            to: 'yyyy@yyyy.com'
     }
 }
