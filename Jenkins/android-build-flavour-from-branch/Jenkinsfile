@@ -1,0 +1,42 @@
+node {
+  // Stage Checkout
+  stage('Stage Checkout') {
+    // Checkout code from repository and update any submodules
+    checkout scm
+    sh 'git submodule update --init'
+  }
+
+  // Stage Build
+  stage('Stage Build') {
+    // Get the branch name from Jenkins environment variables
+    def branchName = env.BRANCH_NAME
+    echo "My branch is: ${branchName}"
+
+    // Extract the flavor from the branch name
+    def appFlavor = extractFlavor(branchName)
+    echo "Building flavor ${appFlavor}"
+
+    // Build the Gradle flavor, passing the current build number as a parameter to Gradle
+    sh "./gradlew clean assemble${appFlavor}Debug -PBUILD_NUMBER=${env.BUILD_NUMBER}"
+  }
+
+  // Stage Archive
+  stage('Stage Archive') {
+    // Tell Jenkins to archive the APKs
+    archiveArtifacts artifacts: 'app/build/outputs/apk/*.apk', fingerprint: true
+  }
+
+  // Stage Upload To Fabric
+  stage('Stage Upload To Fabric') {
+    // Upload the APKs to Firebase Crashlytics
+    sh "./gradlew crashlyticsUploadDistribution${appFlavor}Debug -PBUILD_NUMBER=${env.BUILD_NUMBER}"
+  }
+}
+
+// Function to extract the Android flavor from the branch name
+@NonCPS
+def extractFlavor(branchName) {
+  def matcher = (branchName =~ /QA_([a-z_]+)/)
+  assert matcher.matches()
+  matcher[0][1]
+}

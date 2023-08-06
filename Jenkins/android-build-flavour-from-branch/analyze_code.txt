@@ -1,0 +1,25 @@
+This is a Jenkins pipeline script designed to build and deploy Android apps using Gradle and 
+Fabric (now known as Firebase Crashlytics). 
+
+-> checkout scm fetches the code from the repository.
+-> sh 'git submodule update --init' updates any submodules in the repository.
+[
+    Git submodules are a way to include another Git repository as a subdirectory within your main repository. 
+    This is commonly used when you want to include an external library or a shared component in your project, 
+    while still keeping them separate as individual repositories.
+
+    When you initialize or clone a repository with submodules, the submodules' content is not automatically downloaded along
+    with the main repository. Instead, you get references to specific commits in the submodules.
+
+    The command git submodule update --init is used to initialize and update these submodules in your repository, 
+    making sure you have the latest content of the submodules checked out at the correct commit.
+
+    For example, let's say your Android project uses a third-party library that is included as a Git submodule. 
+    If you don't run the git submodule update --init command during the checkout stage, you might end up with an outdated or 
+    incorrect version of the submodule, which could lead to unexpected issues or bugs in your build.
+]
+
+-> echo "My branch is: ${env.BRANCH_NAME}" prints the current branch name.
+-> The flavor variable is then defined by calling the flavor function with the env.BRANCH_NAME as an argument.
+-> The flavor function extracts the Android flavor from the branch name.
+-> It uses a regular expression to match the pattern /QA_([a-z_]+)/ in the branch name and extracts the captured flavor name.
